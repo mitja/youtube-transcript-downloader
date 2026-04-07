@@ -181,6 +181,32 @@ def test_fetch_transcript_with_language(mock_api_class: MagicMock) -> None:
     mock_instance.fetch.assert_called_once_with("vid123456789", languages=["de", "en"])
 
 
+@patch("youtube_transcript_downloader.youtube_transcript_downloader.NoTranscriptFound", Exception)
+@patch("youtube_transcript_downloader.youtube_transcript_downloader.YouTubeTranscriptApi")
+def test_fetch_transcript_translation_fallback(mock_api_class: MagicMock) -> None:
+    mock_instance = mock_api_class.return_value
+    mock_instance.fetch.side_effect = Exception("No transcript found")
+
+    mock_source = MagicMock()
+    mock_translated = MagicMock()
+    mock_translated.fetch.return_value = [
+        SimpleNamespace(text="Hallo"),
+        SimpleNamespace(text="Welt"),
+    ]
+    mock_source.translate.return_value = mock_translated
+
+    mock_transcript_list = MagicMock()
+    mock_transcript_list.find_transcript.return_value = mock_source
+    mock_instance.list.return_value = mock_transcript_list
+
+    result = fetch_transcript("vid123456789", languages=["de"])
+
+    assert result == "Hallo\nWelt"
+    mock_instance.list.assert_called_once_with("vid123456789")
+    mock_transcript_list.find_transcript.assert_called_once_with(["en"])
+    mock_source.translate.assert_called_once_with("de")
+
+
 @patch("youtube_transcript_downloader.youtube_transcript_downloader.YouTubeTranscriptApi")
 def test_fetch_transcript_error(mock_api_class: MagicMock) -> None:
     mock_instance = mock_api_class.return_value
