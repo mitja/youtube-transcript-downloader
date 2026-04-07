@@ -168,6 +168,20 @@ def test_fetch_transcript(mock_api_class: MagicMock) -> None:
 
 
 @patch("youtube_transcript_downloader.youtube_transcript_downloader.YouTubeTranscriptApi")
+def test_fetch_transcript_with_language(mock_api_class: MagicMock) -> None:
+    mock_instance = mock_api_class.return_value
+    mock_instance.fetch.return_value = [
+        SimpleNamespace(text="Hallo"),
+        SimpleNamespace(text="Welt"),
+    ]
+
+    result = fetch_transcript("vid123456789", languages=["de", "en"])
+
+    assert result == "Hallo\nWelt"
+    mock_instance.fetch.assert_called_once_with("vid123456789", languages=["de", "en"])
+
+
+@patch("youtube_transcript_downloader.youtube_transcript_downloader.YouTubeTranscriptApi")
 def test_fetch_transcript_error(mock_api_class: MagicMock) -> None:
     mock_instance = mock_api_class.return_value
     mock_instance.fetch.side_effect = Exception("No transcript")
@@ -211,6 +225,49 @@ def test_main_cli(mock_build: MagicMock, mock_api_class: MagicMock, tmp_path: Pa
     files = list(tmp_path.glob("*.md"))
     assert len(files) == 1
     assert "video_id: xdxgLTzfCWI" in files[0].read_text()
+    mock_instance.fetch.assert_called_once_with("xdxgLTzfCWI", languages=["en"])
+
+
+@patch("youtube_transcript_downloader.youtube_transcript_downloader.YouTubeTranscriptApi")
+@patch("youtube_transcript_downloader.youtube_transcript_downloader.build")
+def test_main_cli_with_language(
+    mock_build: MagicMock, mock_api_class: MagicMock, tmp_path: Path
+) -> None:
+    mock_youtube = MagicMock()
+    mock_build.return_value = mock_youtube
+    mock_youtube.videos().list().execute.return_value = {
+        "items": [
+            {
+                "id": "xdxgLTzfCWI",
+                "snippet": {
+                    "title": "Test Video",
+                    "channelTitle": "Test Channel",
+                    "publishedAt": "2024-01-15T10:00:00Z",
+                },
+                "contentDetails": {"duration": "PT5M30S"},
+                "statistics": {"viewCount": "1000", "likeCount": "50", "commentCount": "10"},
+            }
+        ]
+    }
+    mock_instance = mock_api_class.return_value
+    mock_instance.fetch.return_value = [SimpleNamespace(text="Hallo transcript")]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "xdxgLTzfCWI",
+            "--api-key",
+            "fake-key",
+            "--output-dir",
+            str(tmp_path),
+            "--language",
+            "de,en",
+        ],
+    )
+
+    assert result.exit_code == 0
+    mock_instance.fetch.assert_called_once_with("xdxgLTzfCWI", languages=["de", "en"])
 
 
 # --- End-to-end test ---
