@@ -14,7 +14,8 @@ Python package for downloading YouTube transcripts. Uses `uv` as the package man
 
 ## Development Workflow
 
-- Work in feature branches, not directly on `main`.
-- Make commits granular — one commit per logical task.
-- Before committing, run `make` and fix any lint errors or test failures.
-- After each phase of work, create a pull request. Include details about test results and any fixes performed in the PR description.
+1. **Create a feature branch** before making any changes: `git checkout -b feature/<name>`.
+2. Implement the changes.
+3. Run `make` and fix any lint errors or test failures until it passes cleanly.
+4. Make granular commits — one commit per logical task.
+5. Create a pull request. Include test results (number of tests passed, any skipped) and a summary of fixes performed in the PR description.
