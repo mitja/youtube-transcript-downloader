@@ -8,7 +8,6 @@ from typing import Any
 import click
 from googleapiclient.discovery import build  # pyright: ignore[reportUnknownVariableType]
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import NoTranscriptFound
 
 
 def extract_video_id(url_or_id: str) -> str:
@@ -67,21 +66,12 @@ def fetch_metadata(youtube: Any, video_ids: list[str]) -> dict[str, dict[str, An
 
 
 def fetch_transcript(video_id: str, languages: list[str] | None = None) -> str | None:
-    """Fetch transcript for a video in the specified languages.
-
-    First tries to find a direct transcript in the requested languages.
-    If none exists, falls back to translating an available transcript.
-    """
+    """Fetch transcript for a video in the specified languages."""
     if languages is None:
         languages = ["en"]
     try:
         ytt = YouTubeTranscriptApi()
-        try:
-            transcript = ytt.fetch(video_id, languages=languages)
-        except NoTranscriptFound:
-            transcript_list = ytt.list(video_id)
-            source = transcript_list.find_transcript(["en"])
-            transcript = source.translate(languages[0]).fetch()
+        transcript = ytt.fetch(video_id, languages=languages)
         return "\n".join(entry.text for entry in transcript)
     except Exception as e:
         click.echo(f"  Could not fetch transcript for {video_id}: {e}", err=True)
