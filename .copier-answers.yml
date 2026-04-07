@@ -1,0 +1,9 @@
+# Changes here will be overwritten by Copier. Do not edit manually.
+_commit: v0.2.25
+_src_path: gh:jlevy/simple-modern-uv
+package_author_email: changeme@example.com
+package_author_name: Mitja Martini
+package_description: Download transcripts from Youtube
+package_github_org: mitja
+package_module: youtube_transcript_downloader
+package_name: youtube_transcript_downloader
