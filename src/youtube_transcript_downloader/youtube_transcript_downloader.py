@@ -65,11 +65,13 @@ def fetch_metadata(youtube: Any, video_ids: list[str]) -> dict[str, dict[str, An
     return metadata
 
 
-def fetch_transcript(video_id: str) -> str | None:
-    """Fetch English transcript for a video."""
+def fetch_transcript(video_id: str, languages: list[str] | None = None) -> str | None:
+    """Fetch transcript for a video in the specified languages."""
+    if languages is None:
+        languages = ["en"]
     try:
         ytt = YouTubeTranscriptApi()
-        transcript = ytt.fetch(video_id, languages=["en"])
+        transcript = ytt.fetch(video_id, languages=languages)
         return "\n".join(entry.text for entry in transcript)
     except Exception as e:
         click.echo(f"  Could not fetch transcript for {video_id}: {e}", err=True)
@@ -121,7 +123,13 @@ url: https://www.youtube.com/watch?v={meta["video_id"]}
     type=click.Path(),
     help="Output directory (default: transcripts).",
 )
-def main(videos: tuple[str, ...], api_key: str, output_dir: str) -> None:
+@click.option(
+    "--language",
+    "-l",
+    default="en",
+    help="Comma-separated language codes in priority order (default: en).",
+)
+def main(videos: tuple[str, ...], api_key: str, output_dir: str, language: str) -> None:
     """Download YouTube video transcripts with metadata."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -137,6 +145,8 @@ def main(videos: tuple[str, ...], api_key: str, output_dir: str) -> None:
         click.echo("No valid video IDs provided.", err=True)
         raise SystemExit(1)
 
+    languages = [lang.strip() for lang in language.split(",")]
+
     click.echo(f"Processing {len(video_ids)} video(s)...")
 
     youtube: Any = build("youtube", "v3", developerKey=api_key)  # pyright: ignore[reportUnknownVariableType]
@@ -151,7 +161,7 @@ def main(videos: tuple[str, ...], api_key: str, output_dir: str) -> None:
         meta = metadata[vid]
         click.echo(f"  [{meta['title'][:60]}] ", nl=False)
 
-        transcript = fetch_transcript(vid)
+        transcript = fetch_transcript(vid, languages=languages)
         if transcript is None:
             click.echo("- no transcript available")
             continue
